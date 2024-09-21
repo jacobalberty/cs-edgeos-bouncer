@@ -51,7 +51,7 @@ func run(ctx context.Context) error {
 	})
 
 	eg.Go(func() error {
-		erClient, err := edgeos.NewClient(cfg.ERApi.Url, cfg.ERApi.User, cfg.ERApi.Pass)
+		erClient, err := xedgeos.FromClient(edgeos.NewClient(cfg.ERApi.Url, cfg.ERApi.User, cfg.ERApi.Pass))
 		if err != nil {
 			return err
 		}
@@ -96,10 +96,23 @@ func run(ctx context.Context) error {
 					fmt.Println("updating group")
 					ag.UpdateGroup(cfg.ERApi.Group, group)
 					hasChanges = false
+					// TODO: Implement a way to update just a single address group
+					data := map[string]interface{}{
+						"firewall": map[string]interface{}{
+							"group": map[string]interface{}{
+								"address-group": ag,
+							},
+						},
+					}
+					// TODO: Delete the following line
+					_ = data
 
-					// TODO: implement set update and write the new address group
-					// see https://github.com/Matthew1471/EdgeOS-API/blob/f79f4ab682a31d9c2418db20f30d11727edf7e21/Documentation/REST%20API/General%20-%20Configuration%20Settings%20Set.adoc
-
+					// TODO: Uncomment these lines
+					/*
+						if _, err := erClient.Set(data); err != nil {
+							return err
+						}
+					*/
 				}
 
 			}
