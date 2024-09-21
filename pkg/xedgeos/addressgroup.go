@@ -5,9 +5,7 @@ import (
 	"slices"
 )
 
-type AddressGroups struct {
-	in map[string]any
-}
+type AddressGroups map[string]any
 
 type GroupList []string
 
@@ -23,6 +21,7 @@ func (a *GroupList) Contains(ip string) bool {
 	_, has := slices.BinarySearch(*a, ip)
 	return has
 }
+
 func (a *GroupList) Remove(ip string) bool {
 	pos, has := slices.BinarySearch(*a, ip)
 	if !has {
@@ -34,30 +33,21 @@ func (a *GroupList) Remove(ip string) bool {
 }
 
 func (a *AddressGroups) UpdateGroup(name string, group GroupList) error {
-	tmp := a.in
-
-	path := []string{"GET", "firewall", "group", "address-group", name}
-	for _, p := range path {
-		if tmp[p] == nil {
-			return fmt.Errorf("path %v not found", path)
-		}
-		tmp = tmp[p].(map[string]any)
+	tmp, ok := (*a)[name].(map[string]any)
+	if !ok {
+		return fmt.Errorf("group %s not found", name)
 	}
 
 	tmp["address"] = group
+	(*a)[name].(map[string]any)["address"] = group
 
 	return nil
 }
 
 func (a *AddressGroups) GetGroup(name string) (GroupList, error) {
-	tmp := a.in
-
-	path := []string{"GET", "firewall", "group", "address-group", name}
-	for _, p := range path {
-		if tmp[p] == nil {
-			return nil, fmt.Errorf("path %v not found", path)
-		}
-		tmp = tmp[p].(map[string]any)
+	tmp, ok := (*a)[name].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("group %s not found", name)
 	}
 
 	anyGroup, _ := tmp["address"].([]interface{})
@@ -70,6 +60,17 @@ func (a *AddressGroups) GetGroup(name string) (GroupList, error) {
 	return group, nil
 }
 
-func NewAddressGroups(in map[string]any) *AddressGroups {
-	return &AddressGroups{in: in}
+func NewAddressGroups(in map[string]any) (*AddressGroups, error) {
+	tmp := in
+
+	path := []string{"GET", "firewall", "group", "address-group"}
+	for _, p := range path {
+		if tmp[p] == nil {
+			return nil, fmt.Errorf("path %v not found", path)
+		}
+		tmp = tmp[p].(map[string]any)
+	}
+
+	addressGroups := AddressGroups(tmp)
+	return &addressGroups, nil
 }

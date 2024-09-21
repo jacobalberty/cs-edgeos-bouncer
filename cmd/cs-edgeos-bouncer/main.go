@@ -62,7 +62,10 @@ func run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		ag := xedgeos.NewAddressGroups(r)
+		ag, err := xedgeos.NewAddressGroups(r)
+		if err != nil {
+			return err
+		}
 		group, err := ag.GetGroup(cfg.ERApi.Group)
 		if err != nil {
 			return err
@@ -91,6 +94,7 @@ func run(ctx context.Context) error {
 			case <-time.Tick(5 * time.Second):
 				if hasChanges {
 					fmt.Println("updating group")
+					ag.UpdateGroup(cfg.ERApi.Group, group)
 					hasChanges = false
 
 					// TODO: implement set update and write the new address group
