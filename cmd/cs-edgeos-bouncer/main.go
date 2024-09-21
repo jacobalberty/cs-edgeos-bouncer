@@ -96,18 +96,10 @@ func run(ctx context.Context) error {
 					fmt.Println("updating group")
 					ag.UpdateGroup(cfg.ERApi.Group, group)
 					hasChanges = false
-					// TODO: Implement a way to update just a single address group
-					data := map[string]interface{}{
-						"firewall": map[string]interface{}{
-							"group": map[string]interface{}{
-								"address-group": ag,
-							},
-						},
-					}
-					// TODO: Delete the following line
-					_ = data
+					data := ag.GetUpdateData(cfg.ERApi.Group)
 
-					// TODO: Uncomment these lines
+					// TODO: Delete the following line and uncomment the lines below
+					_ = data
 					/*
 						if _, err := erClient.Set(data); err != nil {
 							return err
