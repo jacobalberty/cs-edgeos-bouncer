@@ -37,8 +37,8 @@ func (a *GroupList) Remove(ip string) bool {
 }
 
 // GetUpdateData returns a map that can be used to update the address group
-func (a *AddressGroups) GetUpdateData(name string) map[string]interface{} {
-	return map[string]interface{}{
+func (a *AddressGroups) GetUpdateData(name string) (map[string]interface{}, map[string]interface{}) {
+	SetData := map[string]interface{}{
 		"firewall": map[string]interface{}{
 			"group": map[string]interface{}{
 				"address-group": map[string]interface{}{
@@ -47,7 +47,22 @@ func (a *AddressGroups) GetUpdateData(name string) map[string]interface{} {
 			},
 		},
 	}
+
+	DeleteData := map[string]interface{}{
+		"firewall": map[string]interface{}{
+			"group": map[string]interface{}{
+				"address-group": map[string]interface{}{
+					name: map[string]interface{}{
+						"address": nil,
+					},
+				},
+			},
+		},
+	}
+
+	return SetData, DeleteData
 }
+
 func (a *AddressGroups) UpdateGroup(name string, group GroupList) error {
 	tmp, ok := (*a)[name].(map[string]any)
 	if !ok {
