@@ -9,6 +9,10 @@ type AddressGroups map[string]any
 
 type GroupList []string
 
+func (a *GroupList) Reset() {
+	*a = []string{}
+}
+
 func (a *GroupList) Add(ip string) bool {
 	if a.Contains(ip) {
 		return false
