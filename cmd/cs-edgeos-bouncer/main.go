@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"astuart.co/edgeos-rest/pkg/edgeos"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/jacobalberty/cs-edgeos-bouncer/internal/config"
 	"github.com/jacobalberty/cs-edgeos-bouncer/pkg/xedgeos"
@@ -51,7 +50,7 @@ func run(ctx context.Context) error {
 	})
 
 	eg.Go(func() error {
-		erClient, err := xedgeos.FromClient(edgeos.NewClient(cfg.ERApi.Url, cfg.ERApi.User, cfg.ERApi.Pass))
+		erClient, err := xedgeos.NewClient(cfg.ERApi.Url, cfg.ERApi.User, cfg.ERApi.Pass)
 		if err != nil {
 			return err
 		}
@@ -98,13 +97,9 @@ func run(ctx context.Context) error {
 					hasChanges = false
 					data := ag.GetUpdateData(cfg.ERApi.Group)
 
-					// TODO: Delete the following line and uncomment the lines below
-					_ = data
-					/*
-						if _, err := erClient.Set(data); err != nil {
-							return err
-						}
-					*/
+					if _, err := erClient.Set(data); err != nil {
+						return err
+					}
 				}
 
 			}

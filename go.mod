@@ -3,9 +3,9 @@ module github.com/jacobalberty/cs-edgeos-bouncer
 go 1.23.0
 
 require (
-	astuart.co/edgeos-rest v1.0.0
 	github.com/crowdsecurity/go-cs-bouncer v0.0.14
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.8.0
 )
 
@@ -39,6 +39,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.59.1 // indirect
