@@ -191,6 +191,23 @@ func (c *Client) Batch(data BatchData) (Resp, error) {
 	return m, err
 }
 
+// Delete takes a map of data and sends it to the EdgeOS API
+func (c *Client) Delete(data any) (Resp, error) {
+	var m map[string]interface{}
+
+	bs, _ := json.Marshal(data)
+	res, err := c.cli.Post(c.Endpoint("delete"), "application/json", bytes.NewReader(bs))
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	err = json.NewDecoder(res.Body).Decode(&m)
+
+	return m, err
+}
+
+// Set takes a map of data and sends it to the EdgeOS API
 func (c *Client) Set(data any) (Resp, error) {
 	var m map[string]interface{}
 

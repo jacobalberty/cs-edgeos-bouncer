@@ -5,93 +5,108 @@ import (
 	"slices"
 )
 
-type AddressGroups map[string]any
+type AddressGroupCollection map[string]AddressGroup
 
-type GroupList []string
-
-func (a *GroupList) Reset() {
-	*a = []string{}
+type AddressGroup struct {
+	Name    string   `json:"-"`
+	Address []string `json:"address,omitempty"`
 }
 
-func (a *GroupList) Add(ip string) bool {
+func (a *AddressGroup) Reset() {
+	a.Address = []string{}
+}
+
+func (a *AddressGroup) Add(ip string) bool {
 	if a.Contains(ip) {
 		return false
 	}
-	*a = append(*a, ip)
+	a.Address = append(a.Address, ip)
 	return true
 }
 
-func (a *GroupList) Contains(ip string) bool {
-	_, has := slices.BinarySearch(*a, ip)
+func (a *AddressGroup) Contains(ip string) bool {
+	_, has := slices.BinarySearch(a.Address, ip)
 	return has
 }
 
-func (a *GroupList) Remove(ip string) bool {
-	pos, has := slices.BinarySearch(*a, ip)
+func (a *AddressGroup) Remove(ip string) bool {
+	pos, has := slices.BinarySearch(a.Address, ip)
 	if !has {
 		return false
 	}
-	*a = append((*a)[:pos], (*a)[pos+1:]...)
+	a.Address = append((a.Address)[:pos], (a.Address)[pos+1:]...)
 
 	return true
 }
 
-// GetUpdateData returns a map that can be used to update the address group
-func (a *AddressGroups) GetUpdateData(name string) (map[string]interface{}, map[string]interface{}) {
-	SetData := map[string]interface{}{
-		"firewall": map[string]interface{}{
-			"group": map[string]interface{}{
-				"address-group": map[string]interface{}{
-					name: (*a)[name],
-				},
-			},
-		},
-	}
-
-	DeleteData := map[string]interface{}{
-		"firewall": map[string]interface{}{
-			"group": map[string]interface{}{
-				"address-group": map[string]interface{}{
-					name: map[string]interface{}{
+func (a *AddressGroup) GetDeleteData() map[string]any {
+	return map[string]any{
+		"firewall": map[string]any{
+			"group": map[string]any{
+				"address-group": map[string]any{
+					a.Name: map[string]any{
 						"address": nil,
 					},
 				},
 			},
 		},
 	}
-
-	return SetData, DeleteData
 }
 
-func (a *AddressGroups) UpdateGroup(name string, group GroupList) error {
-	tmp, ok := (*a)[name].(map[string]any)
-	if !ok {
-		return fmt.Errorf("group %s not found", name)
+// Returns address groups in batches of 50
+func (a *AddressGroup) GetSetData() []map[string]any {
+	batchSize := 1000
+	batches := len(a.Address) / batchSize
+	if len(a.Address)%batchSize != 0 {
+		batches++
 	}
 
-	tmp["address"] = group
-	(*a)[name].(map[string]any)["address"] = group
+	data := make([]map[string]any, batches)
+	for i := 0; i < batches; i++ {
+		start := i * batchSize
+		end := (i + 1) * batchSize
+		if end > len(a.Address) {
+			end = len(a.Address)
+		}
+
+		data[i] = map[string]any{
+			"firewall": map[string]any{
+				"group": map[string]any{
+					"address-group": map[string]any{
+						a.Name: map[string]any{
+							"address": a.Address[start:end],
+						},
+					},
+				},
+			},
+		}
+	}
+	return data
+}
+
+func (a *AddressGroupCollection) UpdateGroup(group *AddressGroup) error {
+	_, ok := (*a)[group.Name]
+	if !ok {
+		return fmt.Errorf("group %s not found", group.Name)
+	}
+
+	(*a)[group.Name] = *group
 
 	return nil
 }
 
-func (a *AddressGroups) GetGroup(name string) (GroupList, error) {
-	tmp, ok := (*a)[name].(map[string]any)
+func (a *AddressGroupCollection) GetGroup(name string) (*AddressGroup, error) {
+	tmp, ok := (*a)[name]
 	if !ok {
 		return nil, fmt.Errorf("group %s not found", name)
 	}
 
-	anyGroup, _ := tmp["address"].([]interface{})
+	tmp.Name = name
 
-	group := make([]string, len(anyGroup))
-	for i, v := range anyGroup {
-		group[i] = v.(string)
-	}
-
-	return group, nil
+	return &tmp, nil
 }
 
-func NewAddressGroups(in map[string]any) (*AddressGroups, error) {
+func NewAddressGroups(in map[string]any) (*AddressGroupCollection, error) {
 	tmp := in
 
 	path := []string{"GET", "firewall", "group", "address-group"}
@@ -102,6 +117,23 @@ func NewAddressGroups(in map[string]any) (*AddressGroups, error) {
 		tmp = tmp[p].(map[string]any)
 	}
 
-	addressGroups := AddressGroups(tmp)
+	addressGroups := AddressGroupCollection{}
+
+	for k, v := range tmp {
+		vmap, ok := v.(map[string]any)["address"].([]interface{})
+		if !ok {
+			vmap = make([]interface{}, 0)
+		}
+		addresSlice := make([]string, len(vmap))
+		for i, a := range vmap {
+			addresSlice[i] = a.(string)
+		}
+		addressGroups[k] = AddressGroup{
+			Name:    k,
+			Address: addresSlice,
+		}
+
+	}
+
 	return &addressGroups, nil
 }
