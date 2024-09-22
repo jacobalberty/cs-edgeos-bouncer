@@ -175,6 +175,21 @@ func NewClient(addr, username, password string) (*Client, error) {
 	}
 	return c, nil
 }
+func (c *Client) Batch(data BatchData) (Resp, error) {
+	var m map[string]interface{}
+
+	bs, _ := json.Marshal(data)
+	res, err := c.cli.Post(c.Endpoint("batch"), "application/json", bytes.NewReader(bs))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	err = json.NewDecoder(res.Body).Decode(&m)
+
+	return m, err
+}
 
 func (c *Client) Set(data any) (Resp, error) {
 	var m map[string]interface{}
@@ -190,4 +205,9 @@ func (c *Client) Set(data any) (Resp, error) {
 	err = json.NewDecoder(res.Body).Decode(&m)
 
 	return m, err
+}
+
+type BatchData struct {
+	Set    map[string]interface{} `json:"SET"`
+	Delete map[string]interface{} `json:"DELETE"`
 }
