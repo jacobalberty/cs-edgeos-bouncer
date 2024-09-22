@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"time"
@@ -69,6 +70,7 @@ func run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		group.Reset()
 
 		var hasChanges bool
 
@@ -79,13 +81,19 @@ func run(ctx context.Context) error {
 				break outer
 			case decision := <-bouncer.Stream:
 				for _, d := range decision.New {
-					if group.Add(*d.Value) {
+					ip := net.ParseIP(*d.Value)
+					if ip != nil &&
+						ip.To4() != nil &&
+						*d.Type == "ban" &&
+						group.Add(*d.Value) {
 						hasChanges = true
 						fmt.Printf("added %s to group\n", *d.Value)
 					}
 				}
 				for _, d := range decision.Deleted {
-					if group.Remove(*d.Value) {
+					ip := net.ParseIP(*d.Value)
+					if ip != nil &&
+						ip.To4() != nil && *d.Type == "ban" && group.Remove(*d.Value) {
 						hasChanges = true
 						fmt.Printf("removed %s from group\n", *d.Value)
 					}
