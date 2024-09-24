@@ -39,49 +39,105 @@ func (a *AddressGroup) Remove(ip string) bool {
 	return true
 }
 
-func (a *AddressGroup) GetDeleteData() map[string]any {
-	return map[string]any{
-		"firewall": map[string]any{
-			"group": map[string]any{
-				"address-group": map[string]any{
-					a.Name: map[string]any{
-						"address": nil,
-					},
-				},
-			},
-		},
-	}
-}
+// This function compares the Address Group from our colleciton with the input group
+// And returns data that does not exist in the input but does exist in our collection
+// To be used for set it returns them in batches of 50
+func (a *AddressGroupCollection) GetSetData(group *AddressGroup) ([]map[string]any, error) {
+	var (
+		batchSize = 50
+		setGroup  = AddressGroup{}
+	)
 
-// Returns address groups in batches of 50
-func (a *AddressGroup) GetSetData() []map[string]any {
-	batchSize := 1000
-	batches := len(a.Address) / batchSize
-	if len(a.Address)%batchSize != 0 {
+	// Get the group from the collection
+	ourGroup, ok := (*a)[group.Name]
+	if !ok {
+		return nil, fmt.Errorf("group %s not found", group.Name)
+	}
+
+	// Find the difference between the two groups
+	for _, ip := range group.Address {
+		if !ourGroup.Contains(ip) {
+			setGroup.Address = append(setGroup.Address, ip)
+		}
+	}
+
+	batches := len(setGroup.Address) / batchSize
+	if len(setGroup.Address)%batchSize != 0 {
 		batches++
 	}
-
+	// Batch the results out
 	data := make([]map[string]any, batches)
 	for i := 0; i < batches; i++ {
 		start := i * batchSize
 		end := (i + 1) * batchSize
-		if end > len(a.Address) {
-			end = len(a.Address)
+		if end > len(setGroup.Address) {
+			end = len(setGroup.Address)
 		}
 
 		data[i] = map[string]any{
 			"firewall": map[string]any{
 				"group": map[string]any{
 					"address-group": map[string]any{
-						a.Name: map[string]any{
-							"address": a.Address[start:end],
+						group.Name: map[string]any{
+							"address": setGroup.Address[start:end],
 						},
 					},
 				},
 			},
 		}
 	}
-	return data
+
+	return data, nil
+}
+
+// This function compares the Address Group from our colleciton with the input group
+// And returns data that does not exist in the input but does exist in our collection
+// To be used for deletion it returns htem in batches of 50
+func (a *AddressGroupCollection) GetDeleteData(group *AddressGroup) ([]map[string]any, error) {
+	var (
+		batchSize = 50
+		delGroup  = AddressGroup{}
+	)
+
+	// Get the group from the collection
+	ourGroup, ok := (*a)[group.Name]
+	if !ok {
+		return nil, fmt.Errorf("group %s not found", group.Name)
+	}
+
+	// Find the difference between the two groups
+	for _, ip := range ourGroup.Address {
+		if !group.Contains(ip) {
+			delGroup.Address = append(delGroup.Address, ip)
+		}
+	}
+
+	batches := len(delGroup.Address) / batchSize
+	if len(delGroup.Address)%batchSize != 0 {
+		batches++
+	}
+	// Batch the results out
+	data := make([]map[string]any, batches)
+	for i := 0; i < batches; i++ {
+		start := i * batchSize
+		end := (i + 1) * batchSize
+		if end > len(delGroup.Address) {
+			end = len(delGroup.Address)
+		}
+
+		data[i] = map[string]any{
+			"firewall": map[string]any{
+				"group": map[string]any{
+					"address-group": map[string]any{
+						group.Name: map[string]any{
+							"address": delGroup.Address[start:end],
+						},
+					},
+				},
+			},
+		}
+	}
+	return data, nil
 }
 
 func (a *AddressGroupCollection) UpdateGroup(group *AddressGroup) error {

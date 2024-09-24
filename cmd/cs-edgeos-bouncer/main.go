@@ -104,20 +104,30 @@ func run(ctx context.Context) error {
 					ag.UpdateGroup(group)
 					hasChanges = false
 
-					setData := group.GetSetData()
-
-					delData := group.GetDeleteData()
-					_, err := erClient.Delete(delData)
+					setData, err := ag.GetSetData(group)
 					if err != nil {
 						return err
 					}
-					for _, curSet := range setData {
-						_, err := erClient.Set(curSet)
+					delData, err := ag.GetDeleteData(group)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("delData: %v\n", len(delData))
+					fmt.Printf("setData: %v\n", len(setData))
+					/*
+						_, err := erClient.Delete(delData)
 						if err != nil {
 							return err
 						}
-					}
+						for _, curSet := range setData {
+							_, err := erClient.Set(curSet)
+							if err != nil {
+								return err
+							}
+						}
+					*/
 					fmt.Println("group updated")
+					os.Exit(0)
 				}
 
 			}
