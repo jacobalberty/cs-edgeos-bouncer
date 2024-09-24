@@ -25,13 +25,12 @@ func (a *AddressGroup) Add(ip string) bool {
 }
 
 func (a *AddressGroup) Contains(ip string) bool {
-	_, has := slices.BinarySearch(a.Address, ip)
-	return has
+	return slices.Index(a.Address, ip) != -1
 }
 
 func (a *AddressGroup) Remove(ip string) bool {
-	pos, has := slices.BinarySearch(a.Address, ip)
-	if !has {
+	pos := slices.Index(a.Address, ip)
+	if pos == -1 {
 		return false
 	}
 	a.Address = append((a.Address)[:pos], (a.Address)[pos+1:]...)
