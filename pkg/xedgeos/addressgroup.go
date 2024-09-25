@@ -2,6 +2,7 @@ package xedgeos
 
 import (
 	"fmt"
+	"log"
 	"slices"
 )
 
@@ -17,20 +18,24 @@ func (a *AddressGroup) Reset() {
 }
 
 func (a *AddressGroup) Add(ip string) bool {
-	if a.Contains(ip) {
+	i, has := slices.BinarySearch(a.Address, ip)
+	if has {
 		return false
 	}
-	a.Address = append(a.Address, ip)
+
+	a.Address = slices.Insert(a.Address, i, ip)
+
 	return true
 }
 
 func (a *AddressGroup) Contains(ip string) bool {
-	return slices.Index(a.Address, ip) != -1
+	_, has := slices.BinarySearch(a.Address, ip)
+	return has
 }
 
 func (a *AddressGroup) Remove(ip string) bool {
-	pos := slices.Index(a.Address, ip)
-	if pos == -1 {
+	pos, has := slices.BinarySearch(a.Address, ip)
+	if !has {
 		return false
 	}
 	a.Address = append((a.Address)[:pos], (a.Address)[pos+1:]...)
@@ -97,6 +102,11 @@ func (a *AddressGroupCollection) GetDeleteData(group *AddressGroup) ([]map[strin
 		batchSize = 50
 		delGroup  = AddressGroup{}
 	)
+
+	if !slices.IsSorted(group.Address) {
+		log.Printf("sorting %s\n", group.Name)
+		slices.Sort(group.Address)
+	}
 
 	// Get the group from the collection
 	ourGroup, ok := (*a)[group.Name]
@@ -183,6 +193,7 @@ func NewAddressGroups(in map[string]any) (*AddressGroupCollection, error) {
 		for i, a := range vmap {
 			addresSlice[i] = a.(string)
 		}
+		slices.Sort(addresSlice)
 		addressGroups[k] = AddressGroup{
 			Name:    k,
 			Address: addresSlice,
