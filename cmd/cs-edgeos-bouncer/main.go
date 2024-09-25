@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -87,7 +88,6 @@ func run(ctx context.Context) error {
 						*d.Type == "ban" &&
 						group.Add(*d.Value) {
 						hasChanges = true
-						//fmt.Printf("added %s to group\n", *d.Value)
 					}
 				}
 				for _, d := range decision.Deleted {
@@ -95,13 +95,11 @@ func run(ctx context.Context) error {
 					if ip != nil &&
 						ip.To4() != nil && *d.Type == "ban" && group.Remove(*d.Value) {
 						hasChanges = true
-						//fmt.Printf("removed %s from group\n", *d.Value)
 					}
 				}
 			case <-time.Tick(5 * time.Second):
 				if hasChanges {
-					fmt.Println("updating group")
-					ag.UpdateGroup(group)
+					log.Println("updating group")
 					hasChanges = false
 
 					setData, err := ag.GetSetData(group)
@@ -112,21 +110,31 @@ func run(ctx context.Context) error {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("delData: %v\n", len(delData))
-					fmt.Printf("setData: %v\n", len(setData))
-					/*
-						_, err := erClient.Delete(delData)
+					log.Printf("old address count %v\n", len((*ag)[group.Name].Address))
+					log.Printf("new address count %v\n", len(group.Address))
+					for _, curDel := range delData {
+						_, err = erClient.Delete(curDel)
 						if err != nil {
 							return err
 						}
-						for _, curSet := range setData {
-							_, err := erClient.Set(curSet)
-							if err != nil {
-								return err
-							}
+					}
+					for _, curSet := range setData {
+						_, err := erClient.Set(curSet)
+						if err != nil {
+							return err
 						}
-					*/
-					fmt.Println("group updated")
+					}
+
+					log.Println("group updated")
+					r, err := erClient.Get()
+					if err != nil {
+						return err
+					}
+					ag, err := xedgeos.NewAddressGroups(r)
+					if err != nil {
+						return err
+					}
+					log.Printf("Stored address count %v\n", len((*ag)[group.Name].Address))
 					os.Exit(0)
 				}
 
